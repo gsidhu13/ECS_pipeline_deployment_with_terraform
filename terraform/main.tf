@@ -57,6 +57,7 @@ resource "aws_ecs_cluster" "cluster" {
   name = "pipelineCluster"
 
 }
+#create task defination 
 
 resource "aws_ecs_task_definition" "defination" {
   family = "pipeline_task"
@@ -68,12 +69,10 @@ resource "aws_ecs_task_definition" "defination" {
       portMappings = [
         {
           containerPort = 80
-          hostPort      = 80
         }
       ]
     }
   ])
-
   cpu                = 256
   memory             = 512
   execution_role_arn = aws_iam_role.task_defination_role.arn
@@ -83,3 +82,65 @@ resource "aws_ecs_task_definition" "defination" {
   task_role_arn = aws_iam_role.task_defination_role.arn
 
 }
+#grab default vpc and create security group 
+
+resource "aws_default_vpc" "default" {
+  tags = {
+    Name = "Default VPC"
+  }
+}
+resource "aws_security_group" "ecs_pipeline_sg" {
+  name   = "sg_ecs_pipeline"
+  vpc_id = aws_default_vpc.default.id
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "TCP"
+    cidr_blocks = ["0.0.0.0/0"]
+
+  }
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "TCP"
+    cidr_blocks = ["0.0.0.0/0"]
+
+  }
+  egress {
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+}
+
+#default subnets 
+resource "aws_default_subnet" "default_az1" {
+  availability_zone = "us-east-1a"
+
+}
+resource "aws_default_subnet" "default_az2" {
+  availability_zone = "us-east-1b"
+
+}
+#Create service
+
+resource "aws_ecs_service" "pipeline_service" {
+  name = "pipeline_service"
+  cluster                            = aws_ecs_cluster.cluster.arn
+  enable_ecs_managed_tags            = true
+  deployment_maximum_percent         = "200"
+  deployment_minimum_healthy_percent = "100"
+  desired_count                      = 2
+  launch_type                        = "FARGATE"
+  network_configuration {
+    subnets          = ["${aws_default_subnet.default_az1.id}", "${aws_default_subnet.default_az2.id}"]
+    security_groups  = ["${aws_security_group.ecs_pipeline_sg.id}"]
+    assign_public_ip = "true"
+  }
+  scheduling_strategy = "REPLICA"
+  task_definition     = aws_ecs_task_definition.defination.arn
+
+}
+
