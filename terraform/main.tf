@@ -18,7 +18,7 @@ provider "aws" {
 
 resource "aws_codecommit_repository" "source_repo" {
 
-  repository_name = "pipeline_source_repo"
+  repository_name = var.repo_name
   description     = "repository for ECS pipeline"
 
 }
@@ -127,7 +127,7 @@ resource "aws_default_subnet" "default_az2" {
 #Create service
 
 resource "aws_ecs_service" "pipeline_service" {
-  name = "pipeline_service"
+  name                               = "pipeline_service"
   cluster                            = aws_ecs_cluster.cluster.arn
   enable_ecs_managed_tags            = true
   deployment_maximum_percent         = "200"
@@ -143,4 +143,292 @@ resource "aws_ecs_service" "pipeline_service" {
   task_definition     = aws_ecs_task_definition.defination.arn
 
 }
+
+#pipeline service role
+
+resource "aws_iam_role" "codepipeline_service_role" {
+  name = "CodePipeline_service_role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Sid    = ""
+        Principal = {
+          Service = "codepipeline.amazonaws.com"
+        }
+      },
+    ]
+  })
+}
+resource "aws_iam_role_policy" "pipeline_polciy" {
+  role = aws_iam_role.codepipeline_service_role.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "iam:PassRole"
+        ],
+        Resource = "*",
+        Effect   = "Allow",
+        Condition = {
+          StringEqualsIfExists = {
+            "iam:PassedToService" : [
+              "cloudformation.amazonaws.com",
+              "elasticbeanstalk.amazonaws.com",
+              "ec2.amazonaws.com",
+              "ecs-tasks.amazonaws.com"
+            ]
+          }
+        }
+      },
+      {
+        Action = [
+          "codecommit:CancelUploadArchive",
+          "codecommit:GetBranch",
+          "codecommit:GetCommit",
+          "codecommit:GetRepository",
+          "codecommit:GetUploadArchiveStatus",
+          "codecommit:UploadArchive"
+        ],
+        Resource = "*",
+        Effect   = "Allow"
+      },
+      {
+        Action = [
+          "codedeploy:CreateDeployment",
+          "codedeploy:GetApplication",
+          "codedeploy:GetApplicationRevision",
+          "codedeploy:GetDeployment",
+          "codedeploy:GetDeploymentConfig",
+          "codedeploy:RegisterApplicationRevision"
+        ],
+        Resource = "*",
+        Effect   = "Allow"
+      },
+      {
+        Action = [
+          "codestar-connections:UseConnection"
+        ],
+        Resource = "*",
+        Effect   = "Allow"
+      },
+      {
+        Action = [
+          "elasticbeanstalk:*",
+          "ec2:*",
+          "elasticloadbalancing:*",
+          "autoscaling:*",
+          "cloudwatch:*",
+          "s3:*",
+          "sns:*",
+          "cloudformation:*",
+          "rds:*",
+          "sqs:*",
+          "ecs:*"
+        ],
+        Resource = "*",
+        Effect   = "Allow"
+      },
+      {
+        Action = [
+          "lambda:InvokeFunction",
+          "lambda:ListFunctions"
+        ],
+        Resource = "*",
+        Effect   = "Allow"
+      },
+      {
+        Action = [
+          "opsworks:CreateDeployment",
+          "opsworks:DescribeApps",
+          "opsworks:DescribeCommands",
+          "opsworks:DescribeDeployments",
+          "opsworks:DescribeInstances",
+          "opsworks:DescribeStacks",
+          "opsworks:UpdateApp",
+          "opsworks:UpdateStack"
+        ],
+        Resource = "*",
+        Effect   = "Allow"
+      },
+      {
+        Action = [
+          "cloudformation:CreateStack",
+          "cloudformation:DeleteStack",
+          "cloudformation:DescribeStacks",
+          "cloudformation:UpdateStack",
+          "cloudformation:CreateChangeSet",
+          "cloudformation:DeleteChangeSet",
+          "cloudformation:DescribeChangeSet",
+          "cloudformation:ExecuteChangeSet",
+          "cloudformation:SetStackPolicy",
+          "cloudformation:ValidateTemplate"
+        ],
+        Resource = "*",
+        Effect   = "Allow"
+      },
+      {
+        Action = [
+          "codebuild:BatchGetBuilds",
+          "codebuild:StartBuild",
+          "codebuild:BatchGetBuildBatches",
+          "codebuild:StartBuildBatch"
+        ],
+        Resource = "*",
+        Effect   = "Allow"
+      },
+      {
+        Effect = "Allow",
+        Action = [
+          "devicefarm:ListProjects",
+          "devicefarm:ListDevicePools",
+          "devicefarm:GetRun",
+          "devicefarm:GetUpload",
+          "devicefarm:CreateUpload",
+          "devicefarm:ScheduleRun"
+        ],
+        Resource = "*"
+      },
+      {
+        Effect = "Allow",
+        Action = [
+          "servicecatalog:ListProvisioningArtifacts",
+          "servicecatalog:CreateProvisioningArtifact",
+          "servicecatalog:DescribeProvisioningArtifact",
+          "servicecatalog:DeleteProvisioningArtifact",
+          "servicecatalog:UpdateProduct"
+        ],
+        Resource = "*"
+      },
+      {
+        Effect = "Allow",
+        Action = [
+          "cloudformation:ValidateTemplate"
+        ],
+        Resource = "*"
+      },
+      {
+        Effect = "Allow",
+        Action = [
+          "ecr:DescribeImages"
+        ],
+        Resource = "*"
+      },
+      {
+        Effect = "Allow",
+        Action = [
+          "states:DescribeExecution",
+          "states:DescribeStateMachine",
+          "states:StartExecution"
+        ],
+        Resource = "*"
+      },
+      {
+        Effect = "Allow",
+        Action = [
+          "appconfig:StartDeployment",
+          "appconfig:StopDeployment",
+          "appconfig:GetDeployment"
+        ],
+        Resource = "*"
+      }
+    ]
+
+  })
+
+}
+
+#codebuild role for ECS
+
+# resource "aws_iam_role" "codebuild_service_role" {
+#   name        = "Codebuild_service_role"
+#   description = "codeBuild role to make changes on ECS"
+#   assume_role_policy = jsonencode({
+#     Version = "2012-10-17"
+#     Statement = [
+#       {
+#         Action = "sts:AssumeRole"
+#         Effect = "Allow"
+#         Sid    = ""
+#         Principal = {
+#           Service = "codepipeline.amazonaws.com"
+#         }
+#       },
+#     ]
+#   })
+#   managed_policy_arns = ["arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPowerUser", ]
+
+# }
+
+
+#pipeline artifact bucket 
+resource "aws_s3_bucket" "codePipeline_bucket" {
+  bucket = "codepipeline-gsingh"
+}
+
+
+#create pipeline 
+
+
+resource "aws_codepipeline" "pipeline" {
+  name     = "ecs_pipeline"
+  role_arn = aws_iam_role.codepipeline_service_role.arn
+  artifact_store {
+    location = aws_s3_bucket.codePipeline_bucket.bucket
+    type     = "S3"
+  }
+  stage {
+    name = "codecommit_source"
+    action {
+      name             = "source_codeCommit"
+      category         = "Source"
+      owner            = "AWS"
+      provider         = "CodeCommit"
+      version          = "1"
+      output_artifacts = ["source_output"]
+      configuration = {
+        RepositoryName       = var.repo_name
+        BranchName           = "main"
+        PollForSourceChanges = true
+      }
+    }
+  }
+  stage {
+    name = "build"
+    action {
+      name             = "ecs_pipeline"
+      category         = "Build"
+      owner            = "AWS"
+      provider         = "CodeBuild"
+      version          = "1"
+      input_artifacts  = ["source_output"]
+      output_artifacts = ["build_output"]
+      configuration = {
+        ProjectName = "ecs_build_pipeline"
+        
+      }
+      #role_arn = aws_iam_role.codebuild_service_role.arn
+    }
+  }
+  stage {
+    name = "deploy"
+    action {
+      name            = "Deploy"
+      category        = "Deploy"
+      owner           = "AWS"
+      provider        = "ECS"
+      version         = "1"
+      input_artifacts = ["build_output"]
+      configuration = {
+        ClusterName = aws_ecs_cluster.cluster.id
+        ServiceName = aws_ecs_service.pipeline_service.name
+
+      }
+    }
+  }
+}
+
 
