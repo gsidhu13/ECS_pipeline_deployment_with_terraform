@@ -5,7 +5,7 @@ variable "source_repo_name" {
 }
 variable "account_number" {
   type    = number
-  default = 460007636749
+  default = "your account #"
 
 }
 variable "cluster_name" {

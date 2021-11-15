@@ -2,3 +2,6 @@ terraform/.terraform/
 terraform/terraform.tfstate.backup
 terraform/.terraform.lock.hcl
 terraform/terraform.tfstate
+terraform.tfstate
+create_source_repo.sh 
+
