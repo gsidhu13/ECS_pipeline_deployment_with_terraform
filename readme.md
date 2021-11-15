@@ -13,7 +13,7 @@
     ** Update your account number in buildspec.yml ** 
 3. Now provision everything else with terraform [module](https://github.com/gsidhu13/ECS_pipeline_deployment/blob/a901f28d5e1594a87be7fc7690394be16a43087d/terraform)
 
-    ** enter in your account in variable [file](https://github.com/gsidhu13/ECS_pipeline_deployment/blob/a901f28d5e1594a87be7fc7690394be16a43087d/terraform/variables.tf) for account name variable **
+    ** enter in your account in variable [file](https://github.com/gsidhu13/ECS_pipeline_deployment/blob/a901f28d5e1594a87be7fc7690394be16a43087d/terraform/variables.tf) for account_number variable **
 
 YOUR PIPELINE HAS BEEN CREATED!!
 
