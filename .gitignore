@@ -3,5 +3,7 @@ terraform/terraform.tfstate.backup
 terraform/.terraform.lock.hcl
 terraform/terraform.tfstate
 terraform.tfstate
-create_source_repo.sh 
+create_source_repo_NOT_SHARED.sh 
+
+
 
