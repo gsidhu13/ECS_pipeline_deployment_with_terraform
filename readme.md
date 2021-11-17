@@ -21,4 +21,4 @@ YOUR PIPELINE HAS BEEN CREATED!!
 1. destroy the resources with Terraform 
 2. To remove the s3 bucket, source repository, and secret manager secret, run this bash [file](https://github.com/gsidhu13/ECS_pipeline_deployment/blob/3d4169cf242e12ada9cb3034802dfde93eed93c4/cleanup/del_bucket_repo_n_secrets.sh)
    
-Open up an issue if you encounter any problems.
+Open up an issue if you have trouble running this project
